@@ -17,7 +17,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
-        fields = ('email', 'first_name', 'last_name', 'is_active')
+        fields = ('email', 'first_name', 'last_name', 'is_verified', 'is_active')
 
 
 #list_display = ('email', 'first_name', 'last_name', 'is_active', 'is_verified', 'is_staff', 'user_registered_at')
@@ -43,7 +43,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        otp = ''.join(random.choices(string.digits, k=6))  # Generate a 6-digit OTP
+        otp = ''.join(random.choices(string.digits, k=6))  
         otp_expiry = timezone.now() + timezone.timedelta(minutes=60)
 
         user = UserModel(
@@ -52,11 +52,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             last_name=validated_data.get("last_name"),
             otp=otp,
             otp_expiry=otp_expiry,
-            max_otp_try=settings.MAX_OTP_TRY,
-            is_active=True,  # Ensure this is set to True
-            is_verified=True  # This should be False until verified
+            max_otp_try=settings.MAX_OTP_TRY
         )
-
         user.set_password(validated_data["password1"])
         user.save()
 

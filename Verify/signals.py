@@ -30,17 +30,17 @@ def send_password_reset_email(email, token):
         fail_silently=False,
     )
 
-@receiver(post_save, sender=UserModel)
-def handle_user_creation(sender, instance, created, **kwargs):
-    if created:
-        otp = ''.join(random.choices(string.digits, k=6))  # Generate a 6-digit OTP
-        otp_expiry = timezone.now() + timezone.timedelta(minutes=60)
+# @receiver(post_save, sender=UserModel)
+# def handle_user_creation(sender, instance, created, **kwargs):
+#     if created:
+#         otp = ''.join(random.choices(string.digits, k=6))  # Generate a 6-digit OTP
+#         otp_expiry = timezone.now() + timezone.timedelta(minutes=60)
 
-        instance.otp = otp
-        instance.otp_expiry = otp_expiry
-        instance.save()
+#         instance.otp = otp
+#         instance.otp_expiry = otp_expiry
+#         instance.save()
 
-        send_otp_email(instance.first_name, instance.email, otp)
+#         send_otp_email(instance.first_name, instance.email, otp)
 
 @receiver(post_save, sender=UserModel)
 def handle_password_reset(sender, instance, **kwargs):

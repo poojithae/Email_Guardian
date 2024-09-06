@@ -68,79 +68,58 @@ class RegisterViewSet(viewsets.ViewSet):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user, otp = serializer.save()  
-            #self.save_otp(user.email, otp)
             send_otp_email(user.first_name, user.email, otp)
             return Response({'message': 'Registration successful. OTP has been sent to your email.'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
     def get_verification_link(self, email, otp):
         """Generate a verification link"""
         verification_url = f"http://{settings.SITE_DOMAIN}/api/verify-otp/?email={email}&otp={otp}"
         return verification_url
 
 class VerifyOTPViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]  
+    permission_classes = [IsAuthenticated]
 
     def create(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
-        
         if serializer.is_valid():
             email = serializer.validated_data.get('email')
             otp = serializer.validated_data.get('otp')
 
-            print(f"Received OTP: {otp} for Email: {email}")  
             try:
                 user = UserModel.objects.get(email=email)
             except UserModel.DoesNotExist:
-                print(f"User with email {email} does not exist.")
                 return Response({'error': 'Email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            print(f"User: {user.email}, OTP: {user.otp}, OTP Expiry: {user.otp_expiry}, Is Verified: {user.is_verified}")
-            print(f"Current Time: {timezone.now()}")  # Debug print
-            print(f"Is Active: {user.is_active}, Is Verified: {user.is_verified}")
 
             if (
-                not user.is_verified
-                and user.is_active
-                and user.otp.strip() == otp.strip()
+                not user.is_active
+                and user.otp == otp
                 and user.otp_expiry
                 and timezone.now() < user.otp_expiry
             ):
-                print(f"OTP is valid. Updating user status.")
-
+                user.is_active = True
                 user.is_verified = True
-                user.is_active = True  # Ensure this is correctly updated
                 user.otp = None
                 user.otp_expiry = None
                 user.max_otp_try = settings.MAX_OTP_TRY
                 user.otp_max_out = None
-                print(f"Before Save - Is Active: {user.is_active}, Is Verified: {user.is_verified}")
                 user.save()
-                user.refresh_from_db()  # Refresh from the database to get the updated values
-                print(f"After Save - Is Active: {user.is_active}, Is Verified: {user.is_verified}")
-
-
-
                 return Response({
-                    "message": "Successfully verified the user.",
-                    'links': {
-                        'login': f"http://{settings.SITE_DOMAIN}/api/token/",
-                        'password_reset': f"http://{settings.SITE_DOMAIN}/api/password-reset/"
-                    }
-                }, status=status.HTTP_200_OK)
-            print(f"OTP is invalid or user is already verified.")
-            return Response({
-                "error": "Incorrect OTP or user is already verified. Please try again.",
+                "message": "Successfully verified the user.",
                 'links': {
-                    'register': f"http://{settings.SITE_DOMAIN}/register/",
+                    'login': f"http://{settings.SITE_DOMAIN}/api/token/",
                     'password_reset': f"http://{settings.SITE_DOMAIN}/api/password-reset/"
                 }
-            }, status=status.HTTP_400_BAD_REQUEST)
-        print(f"Serializer errors: {serializer.errors}")
+            }, status=status.HTTP_200_OK)
+            return Response({
+            "error": "User is already active or incorrect OTP. Please try again.",
+            'links': {
+                'register': f"http://{settings.SITE_DOMAIN}/register/",
+                'password_reset': f"http://{settings.SITE_DOMAIN}/api/password-reset/"
+            }
+        }, status=status.HTTP_400_BAD_REQUEST)  
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-     
 class RegenerateOTPViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access
 
@@ -314,11 +293,9 @@ class PasswordResetVerifiedViewSet(viewsets.ViewSet):
                 if not user.is_verified:
                     return Response({'detail': 'User account is not verified. Cannot reset password.'}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Set the new password
                 user.set_password(password)
                 user.save()
 
-                # Delete the used password reset code
                 password_reset_code.delete()
 
                 return Response({'success': 'Password reset successfully.'}, status=status.HTTP_200_OK)
@@ -328,6 +305,7 @@ class PasswordResetVerifiedViewSet(viewsets.ViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+#For admin Emailchange
 class EmailChangeViewSet(viewsets.ViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = EmailChangeSerializer
