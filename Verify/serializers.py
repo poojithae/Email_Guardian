@@ -29,7 +29,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserModel
-        fields = ['first_name', 'last_name', 'email', 'password1', 'password2' ]
+        fields = ['first_name', 'last_name', 'email', 'password1', 'password2']
 
     def validate(self, data):
         """
@@ -38,7 +38,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         password1 = data.get('password1')
         password2 = data.get('password2')
 
-        if data['password1'] != data['password2']:
+        if password1 != password2:
             raise serializers.ValidationError("Passwords must match.")
         return data
 
@@ -53,12 +53,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             otp=otp,
             otp_expiry=otp_expiry,
             max_otp_try=settings.MAX_OTP_TRY,
-            is_verified=True 
+            is_active=True,  # Ensure this is set to True
+            is_verified=True  # This should be False until verified
         )
+
         user.set_password(validated_data["password1"])
         user.save()
 
         return user, otp
+
     
    
 class VerifyOTPSerializer(serializers.Serializer):

@@ -80,7 +80,7 @@ class RegisterViewSet(viewsets.ViewSet):
         return verification_url
 
 class VerifyOTPViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]  # Changed to AllowAny if OTP verification is public
+    permission_classes = [AllowAny]  
 
     def create(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
@@ -89,25 +89,38 @@ class VerifyOTPViewSet(viewsets.ViewSet):
             email = serializer.validated_data.get('email')
             otp = serializer.validated_data.get('otp')
 
+            print(f"Received OTP: {otp} for Email: {email}")  
             try:
                 user = UserModel.objects.get(email=email)
             except UserModel.DoesNotExist:
+                print(f"User with email {email} does not exist.")
                 return Response({'error': 'Email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            print(f"User: {user.email}, OTP: {user.otp}, OTP Expiry: {user.otp_expiry}, Is Verified: {user.is_verified}")
+            print(f"Current Time: {timezone.now()}")  # Debug print
+            print(f"Is Active: {user.is_active}, Is Verified: {user.is_verified}")
 
             if (
                 not user.is_verified
                 and user.is_active
-                and user.otp == otp
+                and user.otp.strip() == otp.strip()
                 and user.otp_expiry
                 and timezone.now() < user.otp_expiry
             ):
+                print(f"OTP is valid. Updating user status.")
+
                 user.is_verified = True
-                user.is_active = True
+                user.is_active = True  # Ensure this is correctly updated
                 user.otp = None
                 user.otp_expiry = None
                 user.max_otp_try = settings.MAX_OTP_TRY
                 user.otp_max_out = None
+                print(f"Before Save - Is Active: {user.is_active}, Is Verified: {user.is_verified}")
                 user.save()
+                user.refresh_from_db()  # Refresh from the database to get the updated values
+                print(f"After Save - Is Active: {user.is_active}, Is Verified: {user.is_verified}")
+
+
 
                 return Response({
                     "message": "Successfully verified the user.",
@@ -116,7 +129,7 @@ class VerifyOTPViewSet(viewsets.ViewSet):
                         'password_reset': f"http://{settings.SITE_DOMAIN}/api/password-reset/"
                     }
                 }, status=status.HTTP_200_OK)
-
+            print(f"OTP is invalid or user is already verified.")
             return Response({
                 "error": "Incorrect OTP or user is already verified. Please try again.",
                 'links': {
@@ -124,7 +137,7 @@ class VerifyOTPViewSet(viewsets.ViewSet):
                     'password_reset': f"http://{settings.SITE_DOMAIN}/api/password-reset/"
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
-
+        print(f"Serializer errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
      

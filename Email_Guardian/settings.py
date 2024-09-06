@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #'Verify.middleware.CustomMiddleware',
+    'Verify.middleware.CustomMiddleware',
 ]
 
 ROOT_URLCONF = 'Email_Guardian.urls'
@@ -136,23 +136,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True  
 EMAIL_HOST = 'smtp.gmail.com'  
-EMAIL_HOST_USER = 'minnureddy768@gmail.com'  
-EMAIL_HOST_PASSWORD = 'rqne znij glen jbkw'  
-EMAIL_PORT = 587 
-
-
+EMAIL_HOST_USER = 'your_Emailaddress'  
+EMAIL_HOST_PASSWORD = 'your_password'  
+EMAIL_PORT = 587  
 EMAIL_FROM = EMAIL_HOST_USER
 EMAIL_BCC = EMAIL_HOST_USER
 
-
-# EMAIL_USE_TLS = True  
-# EMAIL_HOST = 'smtp.gmail.com'  
-# EMAIL_HOST_USER = 'your_Emailaddress'  
-# EMAIL_HOST_PASSWORD = 'your_password'  
-# EMAIL_PORT = 587  
 
 SITE_DOMAIN = '127.0.0.1:8000'  
 AUTH_USER_MODEL = 'Verify.UserModel'
